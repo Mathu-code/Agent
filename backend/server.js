@@ -20,7 +20,7 @@ app.get('/health', (req, res) => {
 // Chat endpoint: simple intent parser that searches products
 app.post('/chat', async (req, res) => {
   try {
-    const { message } = req.body
+    const { message, mode = 'self', locale = 'en' } = req.body
     if (!message) return res.status(400).json({ error: 'Message is required' })
 
     const lower = message.toLowerCase()
@@ -32,16 +32,23 @@ app.post('/chat', async (req, res) => {
         const results = await mcpClient.searchProducts({ q, limit: 12 })
         // MCP responses may vary; normalize
         const products = results.products || results.items || []
-        const reply = `Found ${products.length} product(s) for "${q}".`
+        const reply = mode === 'gift'
+          ? `Aiyo, nice one. I found ${products.length} option(s) for "${q}" and I'm leaning toward the ones that feel thoughtful, not generic.`
+          : `Nice, I found ${products.length} option(s) for "${q}". I’ll keep it practical and useful.`
         return res.json({ reply, products, action: 'show_products' })
       } catch (err) {
         console.error('chat search error', err)
-        return res.json({ reply: "Sorry — I couldn't search right now. Try again." })
+        return res.json({ reply: mode === 'gift' ? "Aiyo — I couldn't search right now. Try again in a second and I'll keep hunting for a good gift." : "Sorry — I couldn't search right now. Try again." })
       }
     }
 
     // Default reply
-    return res.json({ reply: `Hi! Tell me what you want to search for (e.g. "Find flowers", "Search headphones").` })
+    return res.json({
+      reply: mode === 'gift'
+        ? `Tell me the occasion and vibe — birthday, apology, flowers, tech, groceries, whatever. I'll do the shopping brainwork.`
+        : `Tell me what you want to buy for yourself — headphones, groceries, a laptop bag, skincare, anything. I'll narrow it down fast.`,
+      locale
+    })
   } catch (error) {
     console.error('Chat error', error)
     res.status(500).json({ error: 'Internal server error' })

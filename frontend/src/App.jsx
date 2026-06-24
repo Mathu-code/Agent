@@ -7,6 +7,8 @@ import CheckoutModal from './components/CheckoutModal'
 import { t, availableLocales } from './i18n/i18n'
 
 function App() {
+  const [locale, setLocale] = useState('en')
+  const [mode, setMode] = useState('self')
   const [messages, setMessages] = useState([
     {
       id: 1,
@@ -18,7 +20,6 @@ function App() {
   const [cart, setCart] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
   const [input, setInput] = useState('')
-  const [locale, setLocale] = useState('en')
   const [loading, setLoading] = useState(false)
   const [currentProducts, setCurrentProducts] = useState([])
   const [showProducts, setShowProducts] = useState(false)
@@ -26,10 +27,27 @@ function App() {
   const [deliveryOpen, setDeliveryOpen] = useState(false)
   const [deliveryInfo, setDeliveryInfo] = useState(null)
 
+  const quickPrompts = mode === 'gift'
+    ? [
+        'I need flowers and a note for my girlfriend',
+        'Find a gift under 5000 LKR for a birthday',
+        'Show romantic gift ideas with delivery tomorrow'
+      ]
+    : [
+        'Find the best headphones under 10000 LKR',
+        'Show me groceries I can get delivered tomorrow',
+        'I need a laptop bag and a wireless mouse'
+      ]
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  useEffect(() => {
+    setMessages(prev => prev.map((msg, index) => index === 0 ? { ...msg, text: t(locale, 'welcome') } : msg))
+  }, [locale])
+
   const handleSendMessage = async (e) => {
     e.preventDefault()
     if (!input.trim()) return
@@ -50,7 +68,7 @@ function App() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input })
+        body: JSON.stringify({ message: input, locale, mode })
       })
       const data = await response.json()
       
@@ -156,6 +174,9 @@ function App() {
         <div className="chat-header">
           <div className="header-left">
             <h1>{t(locale, 'title')}</h1>
+            <p className="header-subtitle">
+              Live Kapruka MCP • guest checkout • Sri Lanka-first shopping
+            </p>
           </div>
           <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
             <select value={locale} onChange={(e) => setLocale(e.target.value)}>
@@ -170,7 +191,48 @@ function App() {
           </div>
         </div>
 
+        <div className="hero-panel">
+          <div className="hero-copy">
+            <span className="eyebrow">Kapruka Agent Challenge</span>
+            <h2>Tell me the mood, not just the item.</h2>
+            <p>
+              I can help you shop for yourself, send a gift, check delivery, and finish checkout with a pay link.
+            </p>
+            <div className="mode-switcher">
+              <button className={`mode-pill ${mode === 'self' ? 'active' : ''}`} onClick={() => setMode('self')} type="button">For me</button>
+              <button className={`mode-pill ${mode === 'gift' ? 'active' : ''}`} onClick={() => setMode('gift')} type="button">For someone else</button>
+            </div>
+          </div>
+          <div className="hero-stats">
+            <div className="stat-card">
+              <strong>Live</strong>
+              <span>catalog search</span>
+            </div>
+            <div className="stat-card">
+              <strong>Fast</strong>
+              <span>delivery quotes</span>
+            </div>
+            <div className="stat-card">
+              <strong>End-to-end</strong>
+              <span>pay link checkout</span>
+            </div>
+          </div>
+        </div>
+
         <div className="chat-content">
+          <div className="quick-actions">
+            {quickPrompts.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                className="quick-chip"
+                onClick={() => setInput(prompt)}
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+
           <div className="messages">
             {messages.map(msg => (
               <div key={msg.id} className={`message ${msg.type}`}>
