@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import bodyParser from 'body-parser'
 import dotenv from 'dotenv'
+import * as mcpClient from './services/mcpClient.js'
 
 dotenv.config()
 
@@ -18,7 +19,7 @@ app.get('/health', (req, res) => {
 })
 
 // Chat endpoint - receives user message and sends agent response
-app.post('/chat', (req, res) => {
+app.post('/chat', async (req, res) => {
   try {
     const { message } = req.body
 
@@ -26,9 +27,38 @@ app.post('/chat', (req, res) => {
       return res.status(400).json({ error: 'Message is required' })
     }
 
-    // TODO: Integrate with Kapruka MCP here
-    // For now, return a placeholder response
-    const reply = `You said: "${message}". This is a placeholder response. Integration with Kapruka MCP coming soon!`
+    // Simple agent logic - search for products based on keywords
+    let reply = ''
+    const lowerMessage = message.toLowerCase()
+
+    // Check if user is searching for products
+    if (lowerMessage.includes('search') || lowerMessage.includes('find') || 
+        lowerMessage.includes('gift') || lowerMessage.includes('buy') ||
+        lowerMessage.includes('looking for')) {
+      
+      // Extract search query
+      let searchQuery = message.replace(/search|find|looking for|buy|gift/gi, '').trim()
+      if (!searchQuery) searchQuery = 'popular'
+async (req, res) => {
+  try {
+    const { query, category, minPrice, maxPrice, sort, limit } = req.body
+
+    const params = {
+      q: query || '',
+      category: category || undefined,
+      min_price: minPrice || undefined,
+      max_price: maxPrice || undefined,
+      sort: sort || 'newest',
+      limit: limit || 20,
+      in_stock_only: true
+    }
+
+    const results = await mcpClient.searchProducts(params)
+    res.json(results)
+  } catch (error) {
+    console.error('Search error:', error)
+    res.status(500).json({ error: error.messagehop today? You can ask me to:\n• Search for products\n• Find gifts\n• Check delivery options\n• Complete your checkout`
+    }
 
     res.json({ reply })
   } catch (error) {
@@ -49,19 +79,16 @@ app.post('/search-products', (req, res) => {
       message: 'Product search endpoint - MCP integration coming soon'
     })
   } catch (error) {
-    console.error('Search error:', error)
-    res.status(500).json({ error: 'Search failed' })
-  }
-})
-
-// Kapruka MCP endpoint - get product details
-app.get('/product/:productId', (req, res) => {
+    console.error('Search errorasync (req, res) => {
   try {
     const { productId } = req.params
-    
-    // TODO: Call Kapruka MCP kapruka_get_product here
-    
-    res.json({
+    const { currency } = req.query
+
+    const product = await mcpClient.getProduct(productId, currency || 'LKR')
+    res.json(product)
+  } catch (error) {
+    console.error('Product error:', error)
+    res.status(500).json({ error: error.message
       product: null,
       message: 'Product details endpoint - MCP integration coming soon'
     })
@@ -69,17 +96,14 @@ app.get('/product/:productId', (req, res) => {
     console.error('Product error:', error)
     res.status(500).json({ error: 'Failed to fetch product' })
   }
-})
-
-// Kapruka MCP endpoint - list categories
-app.get('/categories', (req, res) => {
+})async (req, res) => {
   try {
-    // TODO: Call Kapruka MCP kapruka_list_categories here
-    
-    res.json({
-      categories: [],
-      message: 'Categories endpoint - MCP integration coming soon'
-    })
+    const { depth } = req.query
+    const categories = await mcpClient.listCategories(depth || 1)
+    res.json(categories)
+  } catch (error) {
+    console.error('Categories error:', error)
+    res.status(500).json({ error: error.message
   } catch (error) {
     console.error('Categories error:', error)
     res.status(500).json({ error: 'Failed to fetch categories' })
@@ -93,46 +117,48 @@ app.post('/check-delivery', (req, res) => {
     
     // TODO: Call Kapruka MCP kapruka_check_delivery here
     
-    res.json({
-      canDeliver: false,
-      rate: 0,
-      message: 'Delivery check endpoint - MCP integration coming soon'
-    })
+    res.json({async (req, res) => {
+  try {
+    const { city, deliveryDate, productId } = req.body
+
+    if (!city || !deliveryDate || !productId) {
+      return res.status(400).json({ error: 'city, deliveryDate, and productId are required' })
+    }
+
+    const delivery = await mcpClient.checkDelivery(city, deliveryDate, productId)
+    res.json(delivery)
   } catch (error) {
     console.error('Delivery check error:', error)
-    res.status(500).json({ error: 'Delivery check failed' })
-  }
-})
-
-// Kapruka MCP endpoint - create order (guest checkout)
-app.post('/create-order', (req, res) => {
-  try {
+    res.status(500).json({ error: error.message
     const { cart, recipient, delivery, sender, giftMessage } = req.body
     
-    // TODO: Call Kapruka MCP kapruka_create_order here
-    
-    res.json({
-      orderId: null,
-      payLink: null,
-      message: 'Order creation endpoint - MCP integration coming soon'
-    })
-  } catch (error) {
-    console.error('Order creation error:', error)
-    res.status(500).json({ error: 'Order creation failed' })
-  }
-})
+    // TODO: Call Kapruka async (req, res) => {
+  try {
+    const { cart, recipient, delivery, sender, giftMessage, currency } = req.body
 
-// Kapruka MCP endpoint - track order
-app.get('/track-order/:orderNumber', (req, res) => {
+    if (!cart || !recipient || !delivery) {
+      return res.status(400).json({ error: 'cart, recipient, and delivery are required' })
+    }
+
+    const order = await mcpClient.createOrder({
+      cart,
+      recipient,
+      delivery,
+      sender,
+      giftMessage,
+      currency: currency || 'LKR'
+    })
+
+    res.json(order)
+  } catch (error) {async (req, res) => {
   try {
     const { orderNumber } = req.params
-    
-    // TODO: Call Kapruka MCP kapruka_track_order here
-    
-    res.json({
-      order: null,
-      message: 'Order tracking endpoint - MCP integration coming soon'
-    })
+
+    const order = await mcpClient.trackOrder(orderNumber)
+    res.json(order)
+  } catch (error) {
+    console.error('Order tracking error:', error)
+    res.status(500).json({ error: error.message
   } catch (error) {
     console.error('Order tracking error:', error)
     res.status(500).json({ error: 'Order tracking failed' })
