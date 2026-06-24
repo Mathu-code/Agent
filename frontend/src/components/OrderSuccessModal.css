@@ -1,0 +1,149 @@
+.success-overlay {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.success-modal {
+  width: 520px;
+  max-width: 95%;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 24px 60px rgba(17, 34, 51, 0.3);
+  padding: 40px 32px;
+  text-align: center;
+  animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.success-icon {
+  font-size: 64px;
+  margin-bottom: 12px;
+  animation: bounce 0.6s ease-out 0.3s both;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+.success-modal h3 {
+  font-size: 24px;
+  color: #0f2742;
+  margin-bottom: 20px;
+}
+
+.success-details {
+  background: linear-gradient(135deg, #f8fafc, #eef2f8);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.success-details p {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #334155;
+}
+
+.success-details strong {
+  color: #0f2742;
+}
+
+.pay-link-btn {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  color: white;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.35);
+  transition: all 0.3s ease;
+  width: 100%;
+  text-align: center;
+}
+
+.pay-link-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(255, 107, 53, 0.45);
+}
+
+.track-section {
+  margin-bottom: 20px;
+}
+
+.track-section p {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.track-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.track-input-row input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid rgba(15, 39, 66, 0.12);
+  border-radius: 12px;
+  font-size: 14px;
+  outline: none;
+  background: white;
+}
+
+.track-input-row input:focus {
+  border-color: #ff6b35;
+}
+
+.track-input-row button {
+  padding: 12px 20px;
+  background: #0f2742;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.track-input-row button:hover:not(:disabled) {
+  background: #1f5c80;
+}
+
+.track-input-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.success-close-btn {
+  padding: 12px 32px;
+  background: transparent;
+  border: 1px solid rgba(15, 39, 66, 0.12);
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  color: #64748b;
+  transition: all 0.3s ease;
+}
+
+.success-close-btn:hover {
+  background: #f1f5f9;
+  border-color: rgba(15, 39, 66, 0.2);
+}

@@ -5,19 +5,19 @@ function ProductCard({ product, onAddToCart, onViewDetails }) {
   const price = product.price || product.selling_price || 0
   const originalPrice = product.original_price || price
   const discount = originalPrice > price ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0
-  const imageUrl = product.image_url || product.image || '/placeholder.png'
+  const rawImage = product.image_url || product.image || ''
+  const imageUrl = rawImage.startsWith('http') ? rawImage : ''
   const inStock = product.in_stock !== false
+  const placeholderUrl = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect fill="%23e2e8f0" width="200" height="200"/><text x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-family="sans-serif" font-size="14">Kapruka</text></svg>`
 
   return (
     <div className="product-card">
       <div className="product-image-wrapper">
         <img 
-          src={imageUrl} 
+          src={imageUrl || placeholderUrl} 
           alt={product.name}
           className="product-image"
-          onError={(e) => {
-            e.target.src = '/placeholder.png'
-          }}
+          loading="lazy"
         />
         {discount > 0 && (
           <div className="discount-badge">{discount}% OFF</div>
@@ -30,7 +30,7 @@ function ProductCard({ product, onAddToCart, onViewDetails }) {
       <div className="product-details">
         <h3 className="product-name">{product.name}</h3>
         
-        {product.description && (
+        {product.description && product.description.length > 2 && !product.description.startsWith('##') && (
           <p className="product-description">{product.description.substring(0, 80)}...</p>
         )}
 

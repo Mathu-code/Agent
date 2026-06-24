@@ -1,10 +1,13 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import './App.css'
 import ProductCard from './components/ProductCard'
 import Cart from './components/Cart'
 import DeliveryModal from './components/DeliveryModal'
 import CheckoutModal from './components/CheckoutModal'
+import OrderSuccessModal from './components/OrderSuccessModal'
 import { t, availableLocales } from './i18n/i18n'
+
+const SESSION_ID = 'session_default_' + Math.random().toString(36).slice(2)
 
 function App() {
   const [locale, setLocale] = useState('en')
@@ -23,40 +26,40 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [currentProducts, setCurrentProducts] = useState([])
   const [showProducts, setShowProducts] = useState(false)
-  const messagesEndRef = useRef(null)
   const [deliveryOpen, setDeliveryOpen] = useState(false)
   const [deliveryInfo, setDeliveryInfo] = useState(null)
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [lastOrder, setLastOrder] = useState(null)
+  const [orderSuccessOpen, setOrderSuccessOpen] = useState(false)
+  const messagesEndRef = useRef(null)
+  const inputRef = useRef(null)
 
   const quickPrompts = mode === 'gift'
     ? [
-        'I need flowers and a note for my girlfriend',
-        'Find a gift under 5000 LKR for a birthday',
-        'Show romantic gift ideas with delivery tomorrow'
+        'Flowers for my girlfriend with note',
+        'Gift under 3000 LKR for birthday',
+        'Anniversary gift with delivery tomorrow'
       ]
     : [
-        'Find the best headphones under 10000 LKR',
-        'Show me groceries I can get delivered tomorrow',
-        'I need a laptop bag and a wireless mouse'
+        'Best headphones under 12000 LKR',
+        'Groceries delivered tomorrow',
+        'Laptop bag and wireless mouse'
       ]
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, showProducts])
 
   useEffect(() => {
-    setMessages(prev => prev.map((msg, index) => index === 0 ? { ...msg, text: t(locale, 'welcome') } : msg))
+    setMessages(prev => prev.map((msg, i) => i === 0 ? { ...msg, text: t(locale, 'welcome') } : msg))
   }, [locale])
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault()
-    if (!input.trim()) return
-
-    // Add user message
+  const sendMessage = useCallback(async (text) => {
+    if (!text.trim()) return
     const userMessage = {
-      id: messages.length + 1,
+      id: Date.now(),
       type: 'user',
-      text: input,
+      text: text,
       timestamp: new Date()
     }
     setMessages(prev => [...prev, userMessage])
@@ -64,17 +67,15 @@ function App() {
     setLoading(true)
 
     try {
-      // Send to backend
-      const response = await fetch('/api/chat', {
+      const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input, locale, mode })
+        body: JSON.stringify({ message: text, sessionId: SESSION_ID, mode, locale })
       })
-      const data = await response.json()
-      
-      // Add agent response
+      const data = await res.json()
+
       const agentMessage = {
-        id: messages.length + 2,
+        id: Date.now() + 1,
         type: 'agent',
         text: data.reply,
         products: data.products || [],
@@ -82,90 +83,159 @@ function App() {
       }
       setMessages(prev => [...prev, agentMessage])
 
-      // If products returned, display them
       if (data.products && data.products.length > 0) {
-        setCurrentProducts(data.products)
+        let products = data.products
+        const ids = products.map(p => p.id).filter(Boolean)
+        if (ids.length > 0) {
+          try {
+            const imgRes = await fetch('/api/product-images', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ productIds: ids })
+            })
+            const imgData = await imgRes.json()
+            products = products.map(p => ({
+              ...p,
+              image_url: imgData[p.id]?.image_url || p.image_url || '',
+              price: imgData[p.id]?.price || p.price
+            }))
+          } catch {
+            // proceed without enriched images
+          }
+        }
+        setCurrentProducts(products)
         setShowProducts(true)
       }
-    } catch (error) {
-      console.error('Error:', error)
+    } catch (err) {
+      console.error('Chat error', err)
       setMessages(prev => [...prev, {
-        id: messages.length + 2,
+        id: Date.now() + 1,
         type: 'agent',
-        text: 'Sorry, something went wrong. Please try again.',
+        text: t(locale, 'error_default'),
         timestamp: new Date()
       }])
     } finally {
       setLoading(false)
     }
+  }, [mode, locale])
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault()
+    await sendMessage(input)
   }
 
   const handleAddToCart = (product) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.product_id === product.id)
-      if (existingItem) {
-        return prevCart.map(item =>
+    setCart(prev => {
+      const existing = prev.find(item => item.product_id === product.id)
+      if (existing) {
+        return prev.map(item =>
           item.product_id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         )
-      } else {
-        return [...prevCart, {
-          product_id: product.id,
-          name: product.name,
-          price: product.selling_price || product.price || 0,
-          image_url: product.image_url,
-          quantity: 1
-        }]
       }
+      return [...prev, {
+        product_id: product.id,
+        name: product.name,
+        price: product.price || product.selling_price || 0,
+        image_url: product.image_url,
+        quantity: 1
+      }]
     })
-    
-    // Show feedback
-    const confirmMessage = {
-      id: messages.length + 1,
+    setMessages(prev => [...prev, {
+      id: Date.now(),
       type: 'agent',
-      text: `✅ Added "${product.name}" to your cart!`,
+      text: t(locale, 'added_to_cart').replace('{name}', product.name),
       timestamp: new Date()
-    }
-    setMessages(prev => [...prev, confirmMessage])
+    }])
   }
 
   const handleRemoveFromCart = (productId) => {
-    setCart(prevCart => prevCart.filter(item => item.product_id !== productId))
+    setCart(prev => prev.filter(item => item.product_id !== productId))
   }
 
   const handleCheckout = () => {
-    // Open delivery modal before completing order
     setShowProducts(false)
     setCartOpen(false)
     setDeliveryOpen(true)
   }
 
   const handleDeliveryConfirm = ({ city, date, delivery }) => {
-    // delivery contains MCP response; show confirmation in chat
     const msg = {
-      id: messages.length + 1,
+      id: Date.now(),
       type: 'agent',
-      text: `Delivery to ${city.name || city.canonical || city} on ${date}: ${delivery.can_deliver ? 'Available' : 'Not available'}`,
+      text: t(locale, 'delivery_confirmed').replace('{city}', city.name || city).replace('{date}', date),
       timestamp: new Date()
     }
     setMessages(prev => [...prev, msg])
     setDeliveryOpen(false)
     setDeliveryInfo({ city, date, delivery })
-    // Open checkout modal next
     setCheckoutOpen(true)
   }
 
-  const [checkoutOpen, setCheckoutOpen] = useState(false)
-
-  const handleViewDetails = (product) => {
-    const detailsMessage = {
-      id: messages.length + 1,
-      type: 'agent',
-      text: `📋 ${product.name}\n\nPrice: LKR ${(product.selling_price || product.price || 0).toLocaleString()}\nStock: ${product.in_stock ? '✅ Available' : '❌ Out of Stock'}\n\n${product.description || 'No description available'}`,
-      timestamp: new Date()
+  const handleViewDetails = async (product) => {
+    try {
+      const res = await fetch(`/api/product/${product.id}?currency=LKR`)
+      const data = await res.json()
+      const name = data.name || product.name
+      const price = data.selling_price || data.price || product.price || 0
+      const desc = data.description && data.description.length > 2 && !data.description.startsWith('##') 
+        ? data.description.substring(0, 200) 
+        : ''
+      const seller = data.seller ? `\nBy: ${data.seller}` : ''
+      const category = data.category ? `\nCategory: ${data.category}` : ''
+      const stock = data.in_stock !== false ? '✅ In Stock' : '❌ Out of Stock'
+      const detailText = `📋 ${name}\n💰 Price: LKR ${price.toLocaleString()}\n📦 ${stock}${seller}${category}${desc ? '\n\n' + desc : ''}`
+      
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        type: 'agent',
+        text: detailText,
+        timestamp: new Date()
+      }])
+    } catch {
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        type: 'agent',
+        text: `📋 ${product.name}\n💰 Price: LKR ${(product.price || product.selling_price || 0).toLocaleString()}\n📦 ${product.in_stock !== false ? '✅ In Stock' : '❌ Out of Stock'}`,
+        timestamp: new Date()
+      }])
     }
-    setMessages(prev => [...prev, detailsMessage])
+  }
+
+  const handleOrderSuccess = (orderData) => {
+    setLastOrder(orderData)
+    setOrderSuccessOpen(true)
+    setCheckoutOpen(false)
+  }
+
+  const handleCloseSuccess = () => {
+    setOrderSuccessOpen(false)
+    setCart([])
+    setCurrentProducts([])
+    setShowProducts(false)
+  }
+
+  const handleTrackOrder = async (orderNumber) => {
+    try {
+      const res = await fetch(`/api/track-order/${orderNumber}`)
+      const data = await res.json()
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        type: 'agent',
+        text: t(locale, 'track_result')
+          .replace('{status}', data.status || 'Processing')
+          .replace('{order}', orderNumber),
+        timestamp: new Date()
+      }])
+    } catch {
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        type: 'agent',
+        text: t(locale, 'track_error'),
+        timestamp: new Date()
+      }])
+    }
   }
 
   return (
@@ -178,42 +248,42 @@ function App() {
               Live Kapruka MCP • guest checkout • Sri Lanka-first shopping
             </p>
           </div>
-          <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
-            <select value={locale} onChange={(e) => setLocale(e.target.value)}>
-              {availableLocales.map(l => <option key={l} value={l}>{l}</option>)}
+          <div className="header-right">
+            <select value={locale} onChange={(e) => setLocale(e.target.value)} className="locale-select">
+              {availableLocales.map(l => <option key={l} value={l}>{l.toUpperCase()}</option>)}
             </select>
-            <button 
-              className="cart-button"
-              onClick={() => setCartOpen(!cartOpen)}
-            >
-              🛒 {t(locale, 'cart')} ({cart.length})
+            <button className="cart-button" onClick={() => setCartOpen(!cartOpen)}>
+              <span className="cart-icon">🛒</span>
+              <span className="cart-count">{cart.reduce((s, i) => s + i.quantity, 0)}</span>
             </button>
           </div>
         </div>
 
         <div className="hero-panel">
           <div className="hero-copy">
-            <span className="eyebrow">Kapruka Agent Challenge</span>
-            <h2>Tell me the mood, not just the item.</h2>
+            <span className="eyebrow">Kapruka Agent Challenge 2026</span>
+            <h2>{mode === 'gift' ? 'Tell me the person, not just the item.' : 'Tell me the mood, not just the item.'}</h2>
             <p>
-              I can help you shop for yourself, send a gift, check delivery, and finish checkout with a pay link.
+              {mode === 'gift'
+                ? 'I can help you find the perfect gift with personality, check delivery, add a note, and finish checkout in one flow.'
+                : 'I can help you shop for yourself, compare prices, check delivery, and finish checkout with a simple pay link.'}
             </p>
             <div className="mode-switcher">
-              <button className={`mode-pill ${mode === 'self' ? 'active' : ''}`} onClick={() => setMode('self')} type="button">For me</button>
-              <button className={`mode-pill ${mode === 'gift' ? 'active' : ''}`} onClick={() => setMode('gift')} type="button">For someone else</button>
+              <button className={`mode-pill ${mode === 'self' ? 'active' : ''}`} onClick={() => setMode('self')} type="button">😎 For me</button>
+              <button className={`mode-pill ${mode === 'gift' ? 'active' : ''}`} onClick={() => setMode('gift')} type="button">🎁 For someone else</button>
             </div>
           </div>
           <div className="hero-stats">
             <div className="stat-card">
-              <strong>Live</strong>
+              <strong>⚡ Live</strong>
               <span>catalog search</span>
             </div>
             <div className="stat-card">
-              <strong>Fast</strong>
+              <strong>🚚 Fast</strong>
               <span>delivery quotes</span>
             </div>
             <div className="stat-card">
-              <strong>End-to-end</strong>
+              <strong>💳 End-to-end</strong>
               <span>pay link checkout</span>
             </div>
           </div>
@@ -222,12 +292,7 @@ function App() {
         <div className="chat-content">
           <div className="quick-actions">
             {quickPrompts.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                className="quick-chip"
-                onClick={() => setInput(prompt)}
-              >
+              <button key={prompt} type="button" className="quick-chip" onClick={() => { setInput(prompt); inputRef.current?.focus() }}>
                 {prompt}
               </button>
             ))}
@@ -236,26 +301,29 @@ function App() {
           <div className="messages">
             {messages.map(msg => (
               <div key={msg.id} className={`message ${msg.type}`}>
-                <div className="message-content">
-                  {msg.text}
+                <div className="message-avatar">
+                  {msg.type === 'agent' ? '🤖' : '👤'}
                 </div>
-                <div className="message-time">
-                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <div className="message-bubble">
+                  <div className="message-content">{msg.text}</div>
+                  <div className="message-time">
+                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
                 </div>
               </div>
             ))}
             
             {showProducts && currentProducts.length > 0 && (
               <div className="products-carousel">
-                <div className="carousel-title">Available Products:</div>
+                <div className="carousel-header">
+                  <div className="carousel-title">
+                    {locale === 'si' ? 'ලබා ගත හැකි නිෂ්පාත:' : locale === 'ta' ? 'Katchi da products:' : 'Available Products:'}
+                  </div>
+                  <button className="carousel-close" onClick={() => setShowProducts(false)}>✕</button>
+                </div>
                 <div className="products-grid">
                   {currentProducts.map(product => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onAddToCart={handleAddToCart}
-                      onViewDetails={handleViewDetails}
-                    />
+                    <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} onViewDetails={handleViewDetails} />
                   ))}
                 </div>
               </div>
@@ -263,10 +331,9 @@ function App() {
 
             {loading && (
               <div className="message agent">
-                <div className="message-content">
-                  <div className="typing">
-                    <span></span><span></span><span></span>
-                  </div>
+                <div className="message-avatar">🤖</div>
+                <div className="message-bubble">
+                  <div className="typing"><span></span><span></span><span></span></div>
                 </div>
               </div>
             )}
@@ -275,38 +342,24 @@ function App() {
 
           <form onSubmit={handleSendMessage} className="input-form">
             <input
+              ref={inputRef}
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={t(locale, 'placeholder')}
               disabled={loading}
             />
-            <button type="submit" disabled={loading}>
+            <button type="submit" disabled={loading || !input.trim()}>
               {t(locale, 'send')}
             </button>
           </form>
         </div>
       </div>
 
-      <Cart
-        items={cart}
-        isOpen={cartOpen}
-        onClose={() => setCartOpen(false)}
-        onRemove={handleRemoveFromCart}
-        onCheckout={handleCheckout}
-      />
-      <DeliveryModal
-        isOpen={deliveryOpen}
-        onClose={() => setDeliveryOpen(false)}
-        onConfirm={handleDeliveryConfirm}
-        cart={cart}
-      />
-      <CheckoutModal
-        isOpen={checkoutOpen}
-        onClose={() => setCheckoutOpen(false)}
-        cart={cart}
-        deliveryInfo={deliveryInfo}
-      />
+      <Cart items={cart} isOpen={cartOpen} onClose={() => setCartOpen(false)} onRemove={handleRemoveFromCart} onCheckout={handleCheckout} locale={locale} />
+      <DeliveryModal isOpen={deliveryOpen} onClose={() => setDeliveryOpen(false)} onConfirm={handleDeliveryConfirm} cart={cart} locale={locale} />
+      <CheckoutModal isOpen={checkoutOpen} onClose={() => setCheckoutOpen(false)} cart={cart} deliveryInfo={deliveryInfo} onOrderCreated={handleOrderSuccess} locale={locale} />
+      {lastOrder && <OrderSuccessModal isOpen={orderSuccessOpen} onClose={handleCloseSuccess} order={lastOrder} onTrack={handleTrackOrder} locale={locale} />}
     </div>
   )
 }
