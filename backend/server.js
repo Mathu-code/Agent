@@ -9,40 +9,49 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 3000
 
-// Middleware
 app.use(cors())
 app.use(bodyParser.json())
 
-// Health check endpoint
+// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'Server is running', timestamp: new Date() })
 })
 
-// Chat endpoint - receives user message and sends agent response
+// Chat endpoint: simple intent parser that searches products
 app.post('/chat', async (req, res) => {
   try {
     const { message } = req.body
+    if (!message) return res.status(400).json({ error: 'Message is required' })
 
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' })
+    const lower = message.toLowerCase()
+    // If user asks to search, run product search
+    if (/\b(search|find|buy|gift|looking for)\b/.test(lower)) {
+      let q = message.replace(/search|find|buy|gift|looking for/gi, '').trim()
+      if (!q) q = 'popular'
+      try {
+        const results = await mcpClient.searchProducts({ q, limit: 12 })
+        // MCP responses may vary; normalize
+        const products = results.products || results.items || []
+        const reply = `Found ${products.length} product(s) for "${q}".`
+        return res.json({ reply, products, action: 'show_products' })
+      } catch (err) {
+        console.error('chat search error', err)
+        return res.json({ reply: "Sorry — I couldn't search right now. Try again." })
+      }
     }
 
-    // Simple agent logic - search for products based on keywords
-    let reply = ''
-    const lowerMessage = message.toLowerCase()
+    // Default reply
+    return res.json({ reply: `Hi! Tell me what you want to search for (e.g. "Find flowers", "Search headphones").` })
+  } catch (error) {
+    console.error('Chat error', error)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
 
-    // Check if user is searching for products
-    if (lowerMessage.includes('search') || lowerMessage.includes('find') || 
-        lowerMessage.includes('gift') || lowerMessage.includes('buy') ||
-        lowerMessage.includes('looking for')) {
-      
-      // Extract search query
-      let searchQuery = message.replace(/search|find|looking for|buy|gift/gi, '').trim()
-      if (!searchQuery) searchQuery = 'popular'
-async (req, res) => {
+// Search products (direct API)
+app.post('/search-products', async (req, res) => {
   try {
     const { query, category, minPrice, maxPrice, sort, limit } = req.body
-
     const params = {
       q: query || '',
       category: category || undefined,
@@ -52,120 +61,91 @@ async (req, res) => {
       limit: limit || 20,
       in_stock_only: true
     }
-
     const results = await mcpClient.searchProducts(params)
     res.json(results)
   } catch (error) {
-    console.error('Search error:', error)
-    res.status(500).json({ error: error.messagehop today? You can ask me to:\n• Search for products\n• Find gifts\n• Check delivery options\n• Complete your checkout`
-    }
-
-    res.json({ reply })
-  } catch (error) {
-    console.error('Chat error:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    console.error('Search error', error)
+    res.status(500).json({ error: error.message || 'Search failed' })
   }
 })
 
-// Kapruka MCP endpoint - search products
-app.post('/search-products', (req, res) => {
-  try {
-    const { query, category, minPrice, maxPrice } = req.body
-    
-    // TODO: Call Kapruka MCP kapruka_search_products here
-    
-    res.json({
-      products: [],
-      message: 'Product search endpoint - MCP integration coming soon'
-    })
-  } catch (error) {
-    console.error('Search errorasync (req, res) => {
+// Product details
+app.get('/product/:productId', async (req, res) => {
   try {
     const { productId } = req.params
     const { currency } = req.query
-
     const product = await mcpClient.getProduct(productId, currency || 'LKR')
     res.json(product)
   } catch (error) {
-    console.error('Product error:', error)
-    res.status(500).json({ error: error.message
-      product: null,
-      message: 'Product details endpoint - MCP integration coming soon'
-    })
-  } catch (error) {
-    console.error('Product error:', error)
-    res.status(500).json({ error: 'Failed to fetch product' })
+    console.error('Product error', error)
+    res.status(500).json({ error: error.message || 'Failed to fetch product' })
   }
-})async (req, res) => {
+})
+
+// Categories
+app.get('/categories', async (req, res) => {
   try {
     const { depth } = req.query
     const categories = await mcpClient.listCategories(depth || 1)
     res.json(categories)
   } catch (error) {
-    console.error('Categories error:', error)
-    res.status(500).json({ error: error.message
-  } catch (error) {
-    console.error('Categories error:', error)
-    res.status(500).json({ error: 'Failed to fetch categories' })
+    console.error('Categories error', error)
+    res.status(500).json({ error: error.message || 'Failed to fetch categories' })
   }
 })
 
-// Kapruka MCP endpoint - check delivery
-app.post('/check-delivery', (req, res) => {
+// Delivery city search
+app.get('/cities', async (req, res) => {
+  try {
+    const { q, limit } = req.query
+    if (!q) return res.status(400).json({ error: 'query param q is required' })
+    const cities = await mcpClient.listDeliveryCities(q, parseInt(limit) || 20)
+    res.json(cities)
+  } catch (error) {
+    console.error('Cities error', error)
+    res.status(500).json({ error: error.message || 'Failed to fetch cities' })
+  }
+})
+
+// Check delivery
+app.post('/check-delivery', async (req, res) => {
   try {
     const { city, deliveryDate, productId } = req.body
-    
-    // TODO: Call Kapruka MCP kapruka_check_delivery here
-    
-    res.json({async (req, res) => {
-  try {
-    const { city, deliveryDate, productId } = req.body
-
-    if (!city || !deliveryDate || !productId) {
-      return res.status(400).json({ error: 'city, deliveryDate, and productId are required' })
-    }
-
+    if (!city || !deliveryDate || !productId) return res.status(400).json({ error: 'city, deliveryDate and productId are required' })
     const delivery = await mcpClient.checkDelivery(city, deliveryDate, productId)
     res.json(delivery)
   } catch (error) {
-    console.error('Delivery check error:', error)
-    res.status(500).json({ error: error.message
-    const { cart, recipient, delivery, sender, giftMessage } = req.body
-    
-    // TODO: Call Kapruka async (req, res) => {
-  try {
-    const { cart, recipient, delivery, sender, giftMessage, currency } = req.body
-
-    if (!cart || !recipient || !delivery) {
-      return res.status(400).json({ error: 'cart, recipient, and delivery are required' })
-    }
-
-    const order = await mcpClient.createOrder({
-      cart,
-      recipient,
-      delivery,
-      sender,
-      giftMessage,
-      currency: currency || 'LKR'
-    })
-
-    res.json(order)
-  } catch (error) {async (req, res) => {
-  try {
-    const { orderNumber } = req.params
-
-    const order = await mcpClient.trackOrder(orderNumber)
-    res.json(order)
-  } catch (error) {
-    console.error('Order tracking error:', error)
-    res.status(500).json({ error: error.message
-  } catch (error) {
-    console.error('Order tracking error:', error)
-    res.status(500).json({ error: 'Order tracking failed' })
+    console.error('Delivery check error', error)
+    res.status(500).json({ error: error.message || 'Delivery check failed' })
   }
 })
 
-// Start server
+// Create order (guest checkout)
+app.post('/create-order', async (req, res) => {
+  try {
+    const { cart, recipient, delivery, sender, giftMessage, currency } = req.body
+    if (!cart || !recipient || !delivery) return res.status(400).json({ error: 'cart, recipient and delivery are required' })
+    const order = await mcpClient.createOrder({ cart, recipient, delivery, sender, giftMessage, currency: currency || 'LKR' })
+    res.json(order)
+  } catch (error) {
+    console.error('Order creation error', error)
+    res.status(500).json({ error: error.message || 'Order creation failed' })
+  }
+})
+
+// Track order
+app.get('/track-order/:orderNumber', async (req, res) => {
+  try {
+    const { orderNumber } = req.params
+    const order = await mcpClient.trackOrder(orderNumber)
+    res.json(order)
+  } catch (error) {
+    console.error('Order tracking error', error)
+    res.status(500).json({ error: error.message || 'Order tracking failed' })
+  }
+})
+
+// Start
 app.listen(PORT, () => {
   console.log(`🚀 Kapruka Backend Server running on http://localhost:${PORT}`)
   console.log(`📊 Health check: http://localhost:${PORT}/health`)

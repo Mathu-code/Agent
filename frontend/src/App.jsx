@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import ProductCard from './components/ProductCard'
 import Cart from './components/Cart'
+import DeliveryModal from './components/DeliveryModal'
 
 function App() {
   const [messages, setMessages] = useState([
@@ -14,9 +15,12 @@ function App() {
   ])
   const [cart, setCart] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
   const [currentProducts, setCurrentProducts] = useState([])
   const [showProducts, setShowProducts] = useState(false)
   const messagesEndRef = useRef(null)
+  const [deliveryOpen, setDeliveryOpen] = useState(false)
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -109,15 +113,25 @@ function App() {
   }
 
   const handleCheckout = () => {
+    // Open delivery modal before completing order
     setShowProducts(false)
     setCartOpen(false)
-    const checkoutMessage = {
+    setDeliveryOpen(true)
+  }
+
+  const [deliveryOpen, setDeliveryOpen] = useState(false)
+
+  const handleDeliveryConfirm = ({ city, date, delivery }) => {
+    // delivery contains MCP response; show confirmation in chat
+    const msg = {
       id: messages.length + 1,
       type: 'agent',
-      text: `Great! You have ${cart.length} item(s) in your cart. Let me help you complete your order. What city should we deliver to?`,
+      text: `Delivery to ${city.name || city.canonical || city} on ${date}: ${delivery.can_deliver ? 'Available' : 'Not available'}`,
       timestamp: new Date()
     }
-    setMessages(prev => [...prev, checkoutMessage])
+    setMessages(prev => [...prev, msg])
+    setDeliveryOpen(false)
+    // Next step: proceed to create order (not yet implemented automatically)
   }
 
   const handleViewDetails = (product) => {
@@ -207,6 +221,12 @@ function App() {
         onClose={() => setCartOpen(false)}
         onRemove={handleRemoveFromCart}
         onCheckout={handleCheckout}
+      />
+      <DeliveryModal
+        isOpen={deliveryOpen}
+        onClose={() => setDeliveryOpen(false)}
+        onConfirm={handleDeliveryConfirm}
+        cart={cart}
       />
     </div>
   )
