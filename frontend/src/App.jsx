@@ -22,6 +22,7 @@ function App() {
   const [showProducts, setShowProducts] = useState(false)
   const messagesEndRef = useRef(null)
   const [deliveryOpen, setDeliveryOpen] = useState(false)
+  const [deliveryInfo, setDeliveryInfo] = useState(null)
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -120,8 +121,6 @@ function App() {
     setDeliveryOpen(true)
   }
 
-  const [deliveryOpen, setDeliveryOpen] = useState(false)
-
   const handleDeliveryConfirm = ({ city, date, delivery }) => {
     // delivery contains MCP response; show confirmation in chat
     const msg = {
@@ -132,6 +131,7 @@ function App() {
     }
     setMessages(prev => [...prev, msg])
     setDeliveryOpen(false)
+    setDeliveryInfo({ city, date, delivery })
     // Open checkout modal next
     setCheckoutOpen(true)
   }
@@ -236,7 +236,7 @@ function App() {
         isOpen={checkoutOpen}
         onClose={() => setCheckoutOpen(false)}
         cart={cart}
-        deliveryInfo={{ date: '' }}
+        deliveryInfo={deliveryInfo}
       />
     </div>
   )

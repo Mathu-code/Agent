@@ -126,7 +126,12 @@ app.post('/create-order', async (req, res) => {
     const { cart, recipient, delivery, sender, giftMessage, currency } = req.body
     if (!cart || !recipient || !delivery) return res.status(400).json({ error: 'cart, recipient and delivery are required' })
     const order = await mcpClient.createOrder({ cart, recipient, delivery, sender, giftMessage, currency: currency || 'LKR' })
-    res.json(order)
+    // Normalize pay link field names from MCP (pay_link | payLink | payment_url)
+    const normalized = {
+      ...order,
+      pay_link: order.pay_link || order.payLink || order.paylink || order.payment_url || null
+    }
+    res.json(normalized)
   } catch (error) {
     console.error('Order creation error', error)
     res.status(500).json({ error: error.message || 'Order creation failed' })
