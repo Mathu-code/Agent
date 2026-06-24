@@ -3,6 +3,7 @@ import './App.css'
 import ProductCard from './components/ProductCard'
 import Cart from './components/Cart'
 import DeliveryModal from './components/DeliveryModal'
+import CheckoutModal from './components/CheckoutModal'
 
 function App() {
   const [messages, setMessages] = useState([
@@ -131,8 +132,11 @@ function App() {
     }
     setMessages(prev => [...prev, msg])
     setDeliveryOpen(false)
-    // Next step: proceed to create order (not yet implemented automatically)
+    // Open checkout modal next
+    setCheckoutOpen(true)
   }
+
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
 
   const handleViewDetails = (product) => {
     const detailsMessage = {
@@ -227,6 +231,12 @@ function App() {
         onClose={() => setDeliveryOpen(false)}
         onConfirm={handleDeliveryConfirm}
         cart={cart}
+      />
+      <CheckoutModal
+        isOpen={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        cart={cart}
+        deliveryInfo={{ date: '' }}
       />
     </div>
   )
