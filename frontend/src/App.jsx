@@ -4,19 +4,21 @@ import ProductCard from './components/ProductCard'
 import Cart from './components/Cart'
 import DeliveryModal from './components/DeliveryModal'
 import CheckoutModal from './components/CheckoutModal'
+import { t, availableLocales } from './i18n/i18n'
 
 function App() {
   const [messages, setMessages] = useState([
     {
       id: 1,
       type: 'agent',
-      text: 'Ayubowan! 👋 Welcome to Kapruka Shopping Agent. What can I help you find today?',
+      text: t('en', 'welcome'),
       timestamp: new Date()
     }
   ])
   const [cart, setCart] = useState([])
   const [cartOpen, setCartOpen] = useState(false)
   const [input, setInput] = useState('')
+  const [locale, setLocale] = useState('en')
   const [loading, setLoading] = useState(false)
   const [currentProducts, setCurrentProducts] = useState([])
   const [showProducts, setShowProducts] = useState(false)
@@ -153,14 +155,19 @@ function App() {
       <div className="chat-container">
         <div className="chat-header">
           <div className="header-left">
-            <h1>🛍️ Kapruka Shopping Agent</h1>
+            <h1>{t(locale, 'title')}</h1>
           </div>
-          <button 
-            className="cart-button"
-            onClick={() => setCartOpen(!cartOpen)}
-          >
-            🛒 Cart ({cart.length})
-          </button>
+          <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+            <select value={locale} onChange={(e) => setLocale(e.target.value)}>
+              {availableLocales.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+            <button 
+              className="cart-button"
+              onClick={() => setCartOpen(!cartOpen)}
+            >
+              🛒 {t(locale, 'cart')} ({cart.length})
+            </button>
+          </div>
         </div>
 
         <div className="chat-content">
@@ -209,11 +216,11 @@ function App() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message... (e.g., 'Find flowers', 'Search electronics')"
+              placeholder={t(locale, 'placeholder')}
               disabled={loading}
             />
             <button type="submit" disabled={loading}>
-              Send
+              {t(locale, 'send')}
             </button>
           </form>
         </div>
