@@ -177,16 +177,16 @@ function App() {
     try {
       const res = await fetch(`/api/product/${product.id}?currency=LKR`)
       const data = await res.json()
+      if (!data) return
       const name = data.name || product.name
       const price = data.selling_price || data.price || product.price || 0
-      const desc = data.description && data.description.length > 2 && !data.description.startsWith('##') 
-        ? data.description.substring(0, 200) 
+      const desc = data.description && data.description.length > 2 && !data.description.startsWith('##') && !data.description.startsWith('**')
+        ? data.description.substring(0, 200)
         : ''
       const seller = data.seller ? `\nBy: ${data.seller}` : ''
       const category = data.category ? `\nCategory: ${data.category}` : ''
       const stock = data.in_stock !== false ? '✅ In Stock' : '❌ Out of Stock'
       const detailText = `📋 ${name}\n💰 Price: LKR ${price.toLocaleString()}\n📦 ${stock}${seller}${category}${desc ? '\n\n' + desc : ''}`
-      
       setMessages(prev => [...prev, {
         id: Date.now(),
         type: 'agent',

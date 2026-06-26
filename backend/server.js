@@ -2,30 +2,35 @@ import express from 'express'
 import cors from 'cors'
 import bodyParser from 'body-parser'
 import dotenv from 'dotenv'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 import * as mcpClient from './services/mcpClient.js'
 
 dotenv.config()
 
 const app = express()
-const PORT = process.env.PORT || 4000
+const PORT = process.env.PORT || 45678
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 app.use(cors())
 app.use(bodyParser.json())
+app.use(express.static(join(__dirname, '..', 'frontend', 'dist')))
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'Server is running', timestamp: new Date() })
 })
 
+// --- API routes (prefixed with /api) ---
+
 // Chat endpoint with agent personality
-app.post('/chat', async (req, res) => {
+app.post('/api/chat', async (req, res) => {
   try {
-    const { message, sessionId: sid, mode = 'self', locale = 'en' } = req.body
+    const { message, mode = 'self', locale = 'en' } = req.body
     if (!message) return res.status(400).json({ error: 'Message is required' })
 
     const lower = message.toLowerCase()
     const searchIntent = /\b(search|find|buy|gift|looking for|show|want|need|venum|sollu|අවශ්‍ය|සෙවීම|හඳුන්වන්න|පෙන්වන්න|காட்டு|தேடு)\b/i
-    
+
     if (searchIntent.test(lower) || lower.length > 2) {
       let q = message
       const stopWords = /^(search|find|buy|gift|looking for|show|want|need|i want|i need|i am looking for|can you|please|find me|get me|show me|help me find|i need|find|තෝරන්න|හඳුන්වන්න|පෙන්වන්න|sollu|kastapadra|kad sutry)/i
@@ -33,26 +38,26 @@ app.post('/chat', async (req, res) => {
       if (!q || q.length < 2) q = message
 
       try {
-        const results = await mcpClient.searchProducts({ 
-          q, 
-          limit: 16, 
+        const results = await mcpClient.searchProducts({
+          q,
+          limit: 16,
           sort: 'newest',
           in_stock_only: true
         })
-        
+
         const products = results.products || []
         const reply = buildReply(message, mode, locale, products, results)
-        return res.json({ 
-          reply, 
+        return res.json({
+          reply,
           products,
           action: 'show_products',
           total: results.total || products.length
         })
       } catch (err) {
         console.error('chat search error', err)
-        return res.json({ 
-          reply: mode === 'gift' 
-            ? "Aiyo — my search just glitched. Try again and I'll find something great." 
+        return res.json({
+          reply: mode === 'gift'
+            ? "Aiyo — my search just glitched. Try again and I'll find something great."
             : "Sorry — couldn't search right now. Give me a sec and try again.",
           action: 'error'
         })
@@ -67,8 +72,8 @@ app.post('/chat', async (req, res) => {
   }
 })
 
-// Search products (direct API) - returns structured data
-app.post('/search-products', async (req, res) => {
+// Search products
+app.post('/api/search-products', async (req, res) => {
   try {
     const { query, category, minPrice, maxPrice, sort, limit } = req.body
     const params = {
@@ -90,7 +95,7 @@ app.post('/search-products', async (req, res) => {
 })
 
 // Product details
-app.get('/product/:productId', async (req, res) => {
+app.get('/api/product/:productId', async (req, res) => {
   try {
     const { productId } = req.params
     const { currency } = req.query
@@ -102,12 +107,12 @@ app.get('/product/:productId', async (req, res) => {
   }
 })
 
-// Batch fetch product images for search results
-app.post('/product-images', async (req, res) => {
+// Batch fetch product images
+app.post('/api/product-images', async (req, res) => {
   try {
     const { productIds } = req.body
     if (!productIds || !Array.isArray(productIds)) return res.status(400).json({ error: 'productIds array required' })
-    
+
     const results = {}
     await Promise.allSettled(
       productIds.slice(0, 20).map(async (id) => {
@@ -131,7 +136,7 @@ app.post('/product-images', async (req, res) => {
 })
 
 // Categories
-app.get('/categories', async (req, res) => {
+app.get('/api/categories', async (req, res) => {
   try {
     const { depth } = req.query
     const categories = await mcpClient.listCategories(depth ? parseInt(depth) : 1)
@@ -143,7 +148,7 @@ app.get('/categories', async (req, res) => {
 })
 
 // Delivery city search
-app.get('/cities', async (req, res) => {
+app.get('/api/cities', async (req, res) => {
   try {
     const { q, limit } = req.query
     if (!q) return res.status(400).json({ error: 'query param q is required' })
@@ -156,7 +161,7 @@ app.get('/cities', async (req, res) => {
 })
 
 // Check delivery
-app.post('/check-delivery', async (req, res) => {
+app.post('/api/check-delivery', async (req, res) => {
   try {
     const { city, deliveryDate, productId } = req.body
     if (!city || !deliveryDate || !productId) return res.status(400).json({ error: 'city, deliveryDate and productId are required' })
@@ -169,7 +174,7 @@ app.post('/check-delivery', async (req, res) => {
 })
 
 // Create order (guest checkout)
-app.post('/create-order', async (req, res) => {
+app.post('/api/create-order', async (req, res) => {
   try {
     const { cart, recipient, delivery, sender, giftMessage, currency } = req.body
     if (!cart || !recipient || !delivery) return res.status(400).json({ error: 'cart, recipient and delivery are required' })
@@ -186,7 +191,7 @@ app.post('/create-order', async (req, res) => {
 })
 
 // Track order
-app.get('/track-order/:orderNumber', async (req, res) => {
+app.get('/api/track-order/:orderNumber', async (req, res) => {
   try {
     const { orderNumber } = req.params
     const order = await mcpClient.trackOrder(orderNumber)
@@ -199,7 +204,7 @@ app.get('/track-order/:orderNumber', async (req, res) => {
 
 function buildReply(message, mode, locale, products = [], searchData = null) {
   const lower = message.toLowerCase()
-  
+
   if (products.length > 0) {
     const total = searchData?.total || products.length
     if (locale === 'ta') {
@@ -217,25 +222,25 @@ function buildReply(message, mode, locale, products = [], searchData = null) {
     if (locale === 'si') return 'ඔබට පුළුවන්! ඕනෑම දෙයක් අහන්න.'
     return "You're welcome! Need anything else?"
   }
-  
+
   if (/price|cheap|budget|under|below|affordable|luxury|expensive/i.test(lower)) {
     if (locale === 'ta') return 'Budget fix panna sollu machan — 5k, 10k, 20k, epavume nenaikkira budget ku range panniduven!'
     if (locale === 'si') return 'ඔබගේ බජට් සීමාව කීයද? මම එයට හරියාගෙන තේරීම් පෙන්වන්න පුළුවන්.'
     return 'Tell me your budget and I will filter down to the best matches. No wasted scrolling.'
   }
-  
+
   if (/deliver|delivery|shipping|arrive|when/i.test(lower)) {
     if (locale === 'ta') return 'City + date sollunga, naan check pannuren. Colombo 1-2 days, outside takes a bit longer.'
     if (locale === 'si') return 'නගරය හා දිනය කියන්න, මම බෙදාහැරෙන ආකාරය පරීක්ෂා කරන්නම්.'
     return 'Pick a city and date and I will check delivery. Colombo is usually next-day.'
   }
-  
+
   if (/help|how|what can|ability/i.test(lower)) {
     if (locale === 'ta') return 'Mela ella help panna mudiyum da: search, compare, delivery check, cart, checkout end-to-end. Enna venumo sollu!'
     if (locale === 'si') return 'මට සොයන්න, සැසිටුවන්න, බෙදාහැරීම පරීක්ෂා කරන්න, ගෙවීම දක්වා මුළු ක්‍රියාවලිය පුරා වැඩි කරන්න පුළුවන්.'
     return "Here's what I can do: search products, compare prices, check delivery, build your cart, and take you all the way to a pay link."
   }
-  
+
   if (/cart|basket|order/i.test(lower)) {
     if (locale === 'ta') return 'Checkout panna sollunga machan!'
     if (locale === 'si') return 'ඔබගේ බඩු මණ්ඩලයට දෑ එකතු කරන්න. රීමතුරු කිරීමට පුළුවන්.'
@@ -247,7 +252,7 @@ function buildReply(message, mode, locale, products = [], searchData = null) {
       ? (locale === 'ta' ? 'ஏய் Machan! 🎁 Gift venumna sollu — flowers, chocolate, tech, anything. Naan unkku help pannuren!' : locale === 'si' ? 'ආයුබෝවන්! 🎁 ඕනෑම අවස්ථාවකට ගිft් සොයන්න පුළුවන්.' : "Aiyo! 👋 I see you're shopping for someone special. Tell me the occasion and I'll find something that feels thoughtful.")
       : (locale === 'ta' ? 'ஏய் Machan! 🛍️ Enna venum? Electronics, groceries, fashion, skincare — ellam search panniduven!' : locale === 'si' ? 'ආයුලෝවන්! 🛍️ මොන දෙයක් ඕනේද? ටෙක්, ග්‍රොසරි, ආත්‍ය, ඕනෑම දෙයක් සොයන්න උදව් කරනවා.' : 'Hey! 👋 What are you shopping for today? Headphones, groceries, skincare, a new bag — tell me what you need.')
   }
-  
+
   if (/bye|goodbye|see you|nandri|thunai/i.test(lower)) {
     if (locale === 'ta') return 'Poi varaikum nandri da! Don\'t forget to come back! 👋'
     if (locale === 'si') return 'ආයුබෝවන්! මු谎言 යනතුරු යන්න! 👋'
@@ -259,9 +264,15 @@ function buildReply(message, mode, locale, products = [], searchData = null) {
   return "Tell me a bit more — what category, budget, or occasion? I promise to make it worth your while. 😉"
 }
 
+// SPA fallback — serve index.html for all non-API routes
+app.get('*', (req, res) => {
+  res.sendFile(join(__dirname, '..', 'frontend', 'dist', 'index.html'))
+})
+
 app.listen(PORT, () => {
-  console.log(`🚀 Kapruka Backend Server running on http://localhost:${PORT}`)
-  console.log(`📊 Health check: http://localhost:${PORT}/health`)
+  console.log(`\n🚀 Kapruka Agent running on http://localhost:${PORT}`)
+  console.log(`📊  Health:   http://localhost:${PORT}/health`)
+  console.log(`🛍️  Frontend: http://localhost:${PORT}\n`)
 })
 
 export default app

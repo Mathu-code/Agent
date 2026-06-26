@@ -180,23 +180,28 @@ function parseProductDetails(raw) {
   const imageMatch = raw.match(/\*\*Image\*\*:\s*(\S+)/)
   const urlMatch = raw.match(/\[View on Kapruka\]\(([^)]+)\)/)
 
-  // Description: grab text between warranty/features and Image section
   let description = ''
-  const descSection = raw.split(/\*\*Image\*\*:/)[0]
-  const descLines = descSection.split('\n').filter(l => l.trim() && !l.trim().startsWith('**') && !l.trim().startsWith('##') && !l.trim().startsWith('ID:') && !l.trim().startsWith('Price:') && !l.trim().startsWith('Stock:') && !l.trim().startsWith('Category:') && !l.trim().startsWith('Vendor:') && !l.trim().startsWith('Weight:') && !l.trim().startsWith('International shipping:'))
-  description = descLines.join(' ').trim().substring(0, 300)
+  if (imageMatch) {
+    const beforeImage = raw.split(/\*\*Image\*\*:/)[0]
+    const lines = beforeImage.split('\n')
+    const cleanLines = lines.filter(l => {
+      const t = l.trim()
+      return t.length > 0 && !t.startsWith('**') && !t.startsWith('##') && !t.startsWith('ID:') && !t.startsWith('Price:') && !t.startsWith('Stock:') && !t.startsWith('Category:') && !t.startsWith('Vendor:') && !t.startsWith('Weight:') && !t.startsWith('International') && !t.startsWith('[View')
+    })
+    description = cleanLines.join(' ').trim().substring(0, 300)
+  }
 
   return {
     id: idMatch ? idMatch[1] : '',
     name: titleMatch ? titleMatch[1].replace(/\*\*/g, '').trim() : 'Unknown',
     price: priceMatch ? parseInt(priceMatch[1].replace(/,/g, '')) : 0,
     selling_price: priceMatch ? parseInt(priceMatch[1].replace(/,/g, '')) : 0,
-    in_stock: stockMatch ? !stockMatch[1].includes('Out') : true,
+    in_stock: stockMatch ? !stockMatch[1].toLowerCase().includes('out') : true,
     category: categoryMatch ? categoryMatch[1].trim() : '',
     seller: vendorMatch ? vendorMatch[1].trim() : '',
     image_url: imageMatch ? imageMatch[1] : '',
     url: urlMatch ? urlMatch[1] : '',
-    description: description || raw
+    description: description || raw.substring(0, 200)
   }
 }
 
