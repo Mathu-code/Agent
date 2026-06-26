@@ -217,11 +217,11 @@ function parseCategories(raw) {
 function parseDeliveryResult(raw) {
   const deliverableMatch = raw.match(/Deliverable:\s*(Yes|No|True|False)/i)
   const rateMatch = raw.match(/Rate:\s*LKR\s+([\d,.]+)/)
-  const perishableMatch = raw.match(/Perishable/)
+  const perishableMatch = raw.match(/Perishable/i)
 
   return {
     can_deliver: deliverableMatch ? /yes|true/i.test(deliverableMatch[1]) : false,
-    rate: rateMatch ? parseFloat(rateMatch[1].replace(/,/g, '')) : 0,
+    rate: rateMatch ? parseFloat(rateMatch[1].replace(/,/g, '')) : null,
     perishable_warning: !!perishableMatch,
     raw
   }

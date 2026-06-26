@@ -207,14 +207,32 @@ function buildReply(message, mode, locale, products = [], searchData = null) {
 
   if (products.length > 0) {
     const total = searchData?.total || products.length
+    if (mode === 'gift') {
+      if (locale === 'ta') {
+        return `Machan! 💔 I feel you — ${total} solid choices, all vibing with that "genuine but not too try-hard" energy. Tell me what feels right, or I can narrow it down for you.`
+      }
+      if (locale === 'si') {
+        return `${total} කැබ්ට් එකතු කළ නිෂ්පාදන(ය) ඇත! 🎁 ඔබට ගැනුම් කරන සුදුසු නිෂ්පාදනය කුමක්දැයි කියන්න.`
+      }
+      return `I found some thoughtful options that won't feel generic. ${total} results — tap Add for any you like, or tell me the vibe you're going for.`
+    }
     if (locale === 'ta') {
       return `"${message}" ku ${total} result(s) irruku da! Unku romba suit pannum — add pannu!`
     }
     if (locale === 'si') {
       return `"${message}" සඳහා ${total} නියමිත නිෂ්පාත(ය) හමුවි. අවශ්‍ය න්‍යාය එකතු කරන්න.`
     }
-    const phrase = mode === 'gift' ? 'I found some thoughtful options that won\'t feel generic' : 'I found some solid options for you'
-    return `${phrase}. ${total} result(s) — tap Add to push them to your cart, or tell me more to narrow it down.`
+    return `I found some solid options for you. ${total} result(s) — tap Add to push them to your cart, or tell me more to narrow it down.`
+  }
+
+  if (/broke.?up|breakup|ex|girlfriend|boyfriend|relationship|heartbreak|dumped/i.test(lower)) {
+    if (locale === 'ta') {
+      return 'Aiyo da! 💔 Flower pathi sollu — red roses, white lilies, delivery tomorrow? Note card also add panna solren!'
+    }
+    if (locale === 'si') {
+      return 'ආයුබෝවන්! 💔 මල් ගැන කියන්න — රතු ගස්, හුර රිදිය — මහ දිනයේ ගෙවීමට?'
+    }
+    return "Oof, that's rough. 😔 Tell me about the flowers — roses, lilies, something else? I'll make sure they land right. Note card included?"
   }
 
   if (/thank|thanks|thnx|nandri|stuthi/i.test(lower)) {

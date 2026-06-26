@@ -147,3 +147,76 @@
   background: #f1f5f9;
   border-color: rgba(15, 39, 66, 0.2);
 }
+
+@media (max-width: 768px) {
+  .success-modal {
+    padding: 30px 20px;
+    width: 100%;
+    margin: 0 16px;
+    border-radius: 20px;
+  }
+  .success-icon {
+    font-size: 50px;
+  }
+  .success-modal h3 {
+    font-size: 20px;
+  }
+  .success-details {
+    padding: 16px;
+  }
+  .success-details p {
+    font-size: 13px;
+  }
+  .track-section p {
+    font-size: 12px;
+  }
+  .track-input-row {
+    flex-direction: column;
+  }
+  .track-input-row button {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .success-modal {
+    padding: 24px 16px;
+    border-radius: 16px;
+  }
+  .success-icon {
+    font-size: 44px;
+  }
+  .success-modal h3 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+  .success-details {
+    padding: 14px;
+    margin-bottom: 20px;
+  }
+  .pay-link-btn {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+  .success-close-btn {
+    padding: 10px 24px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 360px) {
+  .success-modal {
+    padding: 20px 12px;
+  }
+  .success-icon {
+    font-size: 40px;
+    margin-bottom: 8px;
+  }
+  .success-modal h3 {
+    font-size: 16px;
+  }
+  .success-details p {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+}

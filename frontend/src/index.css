@@ -13,13 +13,19 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   background-color: var(--bg-light);
   color: var(--text-dark);
+  -webkit-text-size-adjust: 100%;
 }
 
 #root {
   width: 100%;
   height: 100vh;
+  height: 100dvh;
 }

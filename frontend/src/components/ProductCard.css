@@ -180,3 +180,28 @@
   .btn-view-details, .btn-add-cart { font-size: 10px; padding: 7px 8px; }
   .product-details { padding: 10px; gap: 4px; }
 }
+
+@media (max-width: 480px) {
+  .product-card {
+    border-radius: 12px;
+  }
+  .product-details {
+    padding: 8px;
+    gap: 3px;
+  }
+  .product-name { font-size: 11px; }
+  .product-description { font-size: 10px; }
+  .product-rating {
+    font-size: 10px;
+  }
+  .current-price { font-size: 12px; }
+  .original-price { font-size: 10px; }
+  .product-seller { font-size: 9px; }
+  .discount-badge {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+  .out-of-stock-overlay {
+    font-size: 11px;
+  }
+}

@@ -24,7 +24,8 @@ function DeliveryModal({ isOpen, onClose, onConfirm, cart }) {
     try {
       const res = await fetch(`/api/cities?q=${encodeURIComponent(q)}&limit=10`)
       const data = await res.json()
-      setSuggestions(data.cities || data.matches || data || [])
+      const cities = data.cities || data.matches || data || []
+      setSuggestions(cities.map(c => typeof c === 'string' ? { name: c } : c))
     } catch (err) {
       console.error('City search error', err)
     }
@@ -36,22 +37,27 @@ function DeliveryModal({ isOpen, onClose, onConfirm, cart }) {
   }, [query])
 
   const handleConfirm = async () => {
-    if (!selectedCity || !date) return
+    if (!query && !selectedCity) return
+    if (!date) return
     if (!cart || cart.length === 0) return
     setLoading(true)
     setResult(null)
     try {
       // Check delivery for the first product in cart for simplicity
-      const productId = cart[0].product_id
+      const productId = String(cart[0].product_id || cart[0].id || '')
+      const cityValue = selectedCity?.name || selectedCity?.canonical || selectedCity || query
+      // Convert YYYY-MM-DD to MM/DD/YYYY format
+      const dateObj = new Date(date)
+      const formattedDate = dateObj.toLocaleDateString('en-US')
       const res = await fetch('/api/check-delivery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ city: selectedCity.name || selectedCity.canonical || selectedCity, deliveryDate: date, productId })
+        body: JSON.stringify({ city: cityValue, deliveryDate: formattedDate, productId })
       })
       const data = await res.json()
       setResult(data)
-      if (data && data.can_deliver) {
-        onConfirm({ city: selectedCity, date, delivery: data })
+      if (data && (data.can_deliver === true || data.can_deliver === 'true')) {
+        onConfirm({ city: selectedCity?.name || query, date, delivery: data })
       }
     } catch (err) {
       console.error('Delivery check error', err)
@@ -87,24 +93,24 @@ function DeliveryModal({ isOpen, onClose, onConfirm, cart }) {
             </ul>
           )}
 
-          <label>Delivery date</label>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+<label>Delivery date</label>
+           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
 
-          {result && (
-            <div className="delivery-result">
-              <p><strong>Deliverable:</strong> {result.can_deliver ? 'Yes' : 'No'}</p>
-              {result.rate !== undefined && <p><strong>Rate:</strong> LKR {result.rate}</p>}
-              {result.perishable_warning && <p className="warn">⚠️ Perishable item — special handling</p>}
-            </div>
-          )}
+{result && (
+             <div className="delivery-result">
+               <p><strong>Deliverable:</strong> {result.can_deliver ? 'Yes ✅' : 'No ❌'}</p>
+               {result.rate !== null && result.rate !== undefined && <p><strong>Rate:</strong> LKR {result.rate}</p>}
+               {result.perishable_warning && <p className="warn">⚠️ Perishable item — special handling</p>}
+             </div>
+           )}
         </div>
 
-        <div className="modal-footer">
-          <button className="btn-secondary" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={handleConfirm} disabled={loading || !selectedCity || !date}>
-            {loading ? 'Checking…' : 'Check & Continue'}
-          </button>
-        </div>
+<div className="modal-footer">
+           <button className="btn-secondary" onClick={onClose}>Cancel</button>
+           <button className="btn-primary" onClick={handleConfirm} disabled={loading || (!selectedCity && !query) || !date}>
+             {loading ? 'Checking…' : 'Check & Continue'}
+           </button>
+         </div>
       </div>
     </div>
   )

@@ -46,6 +46,26 @@ function App() {
         'Laptop bag and wireless mouse'
       ]
 
+  const getModeSpecificPrompt = () => {
+    const moods = {
+      self: [
+        'I need a new phone case',
+        'Groceries for the week',
+        'Gaming mouse under 5k',
+        'Office chair for my back pain',
+        'Birthday gift for my sister'
+      ],
+      gift: [
+        'My girlfriend broke up with me...',
+        'Flowers that say "sorry"',
+        'Gift for my mom\'s birthday',
+        'Surprise my best friend',
+        'Anniversary gift ideas'
+      ]
+    }
+    return moods[mode] || moods.self
+  }
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, showProducts])
@@ -174,12 +194,23 @@ function App() {
   }
 
   const handleViewDetails = async (product) => {
+    if (!product || !product.id) {
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        type: 'agent',
+        text: 'Product details unavailable. Please try searching again.',
+        timestamp: new Date()
+      }])
+      return
+    }
     try {
-      const res = await fetch(`/api/product/${product.id}?currency=LKR`)
+      const res = await fetch(`/api/product/${encodeURIComponent(product.id)}?currency=LKR`)
       const data = await res.json()
-      if (!data) return
+      if (!data || data.error) {
+        throw new Error(data?.error || 'No data received')
+      }
       const name = data.name || product.name
-      const price = data.selling_price || data.price || product.price || 0
+      const price = data.price || data.selling_price || product.price || 0
       const desc = data.description && data.description.length > 2 && !data.description.startsWith('##') && !data.description.startsWith('**')
         ? data.description.substring(0, 200)
         : ''
@@ -193,7 +224,8 @@ function App() {
         text: detailText,
         timestamp: new Date()
       }])
-    } catch {
+    } catch (err) {
+      console.error('View details error:', err)
       setMessages(prev => [...prev, {
         id: Date.now(),
         type: 'agent',
@@ -259,7 +291,7 @@ function App() {
           </div>
         </div>
 
-        <div className="hero-panel">
+<div className="hero-panel">
           <div className="hero-copy">
             <span className="eyebrow">Kapruka Agent Challenge 2026</span>
             <h2>{mode === 'gift' ? 'Tell me the person, not just the item.' : 'Tell me the mood, not just the item.'}</h2>
@@ -283,12 +315,12 @@ function App() {
               <span>delivery quotes</span>
             </div>
             <div className="stat-card">
-              <strong>💳 End-to-end</strong>
+              <strong>💳 One-tap</strong>
               <span>pay link checkout</span>
             </div>
           </div>
         </div>
-
+            
         <div className="chat-content">
           <div className="quick-actions">
             {quickPrompts.map((prompt) => (
@@ -321,11 +353,11 @@ function App() {
                   </div>
                   <button className="carousel-close" onClick={() => setShowProducts(false)}>✕</button>
                 </div>
-                <div className="products-grid">
-                  {currentProducts.map(product => (
-                    <ProductCard key={product.id} product={product} onAddToCart={handleAddToCart} onViewDetails={handleViewDetails} />
-                  ))}
-                </div>
+<div className="products-grid">
+                   {currentProducts.map(product => (
+                     <ProductCard key={product.id || product.name} product={{...product, id: String(product.id || '')}} onAddToCart={handleAddToCart} onViewDetails={handleViewDetails} />
+                   ))}
+                 </div>
               </div>
             )}
 
