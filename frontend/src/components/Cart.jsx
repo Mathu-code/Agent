@@ -23,11 +23,15 @@ function Cart({ items, isOpen, onClose, onRemove, onCheckout }) {
           ) : (
             items.map((item) => (
               <div key={item.product_id} className="cart-item">
-                <img 
-                  src={item.image_url || '/placeholder.png'} 
-                  alt={item.name}
-                  className="item-image"
-                />
+<img 
+                   src={item.image_url?.startsWith('http') || item.image_url?.startsWith('/')
+                     ? item.image_url
+                     : item.image_url
+                       ? `https://www.kapruka.com/images/${item.image_url}`
+                       : '/placeholder.png'} 
+                   alt={item.name}
+                   className="item-image"
+                 />
                 <div className="item-details">
                   <h4>{item.name}</h4>
                   <p className="item-price">
