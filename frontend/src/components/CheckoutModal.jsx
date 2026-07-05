@@ -4,6 +4,17 @@ import './CheckoutModal.css'
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 const api = (path) => `${API_BASE}${path.startsWith('/') ? '' : '/'}${path}`
 
+async function fetchWithTimeout(url, options = {}, timeout = 20000) {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeout)
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal })
+    return res
+  } finally {
+    clearTimeout(id)
+  }
+}
+
 function CheckoutModal({ isOpen, onClose, cart, deliveryInfo, onOrderCreated, locale }) {
   const [recipient, setRecipient] = useState({ name: '', email: '', phone: '', city: '' })
   const [sender, setSender] = useState({ name: '', email: '', phone: '' })
@@ -31,7 +42,7 @@ function CheckoutModal({ isOpen, onClose, cart, deliveryInfo, onOrderCreated, lo
         giftMessage: giftMessage || undefined,
         currency: 'LKR'
       }
-      const res = await fetch(api('/api/create-order'), {
+      const res = await fetchWithTimeout(api('/api/create-order'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

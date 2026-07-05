@@ -4,6 +4,17 @@ import './DeliveryModal.css'
 const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 const api = (path) => `${API_BASE}${path.startsWith('/') ? '' : '/'}${path}`
 
+async function fetchWithTimeout(url, options = {}, timeout = 20000) {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeout)
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal })
+    return res
+  } finally {
+    clearTimeout(id)
+  }
+}
+
 function DeliveryModal({ isOpen, onClose, onConfirm, cart }) {
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState([])
@@ -25,7 +36,7 @@ function DeliveryModal({ isOpen, onClose, onConfirm, cart }) {
   const searchCities = async (q) => {
     if (!q) return setSuggestions([])
     try {
-      const res = await fetch(api(`/api/cities?q=${encodeURIComponent(q)}&limit=10`))
+      const res = await fetchWithTimeout(api(`/api/cities?q=${encodeURIComponent(q)}&limit=10`))
       const data = await res.json()
       const cities = data.cities || data.matches || data || []
       setSuggestions(cities.map(c => typeof c === 'string' ? { name: c } : c))
@@ -52,7 +63,7 @@ function DeliveryModal({ isOpen, onClose, onConfirm, cart }) {
       // Convert YYYY-MM-DD to MM/DD/YYYY format
       const dateObj = new Date(date)
       const formattedDate = dateObj.toLocaleDateString('en-US')
-      const res = await fetch(api('/api/check-delivery'), {
+      const res = await fetchWithTimeout(api('/api/check-delivery'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ city: cityValue, deliveryDate: formattedDate, productId })
