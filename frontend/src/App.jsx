@@ -11,6 +11,17 @@ const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 const api = (path) => `${API_BASE}${path.startsWith('/') ? '' : '/'}${path}`
 const SESSION_ID = 'session_default_' + Math.random().toString(36).slice(2)
 
+async function fetchWithTimeout(url, options = {}, timeout = 20000) {
+  const controller = new AbortController()
+  const id = setTimeout(() => controller.abort(), timeout)
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal })
+    return res
+  } finally {
+    clearTimeout(id)
+  }
+}
+
 function App() {
   const [locale, setLocale] = useState('en')
   const [mode, setMode] = useState('self')
@@ -89,7 +100,7 @@ function App() {
     setLoading(true)
 
     try {
-      const res = await fetch(api('/api/chat'), {
+      const res = await fetchWithTimeout(api('/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, sessionId: SESSION_ID, mode, locale })
@@ -107,26 +118,28 @@ function App() {
 
       if (data.products && data.products.length > 0) {
         let products = data.products
+        setCurrentProducts(products)
+        setShowProducts(true)
+
         const ids = products.map(p => p.id).filter(Boolean)
         if (ids.length > 0) {
           try {
-             const imgRes = await fetchWithTimeout(api('/api/product-images'), {
+             const imgRes = await fetch(api('/api/product-images'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ productIds: ids })
             })
             const imgData = await imgRes.json()
-            products = products.map(p => ({
+            const enriched = products.map(p => ({
               ...p,
               image_url: imgData[p.id]?.image_url || p.image_url || '',
               price: imgData[p.id]?.price || p.price
             }))
+            setCurrentProducts(enriched)
           } catch {
             // proceed without enriched images
           }
         }
-        setCurrentProducts(products)
-        setShowProducts(true)
       }
     } catch (err) {
       console.error('Chat error', err)
@@ -206,7 +219,7 @@ function App() {
       return
     }
     try {
-      const res = await fetch(api(`/api/product/${encodeURIComponent(product.id)}?currency=LKR`))
+      const res = await fetchWithTimeout(api(`/api/product/${encodeURIComponent(product.id)}?currency=LKR`))
       const data = await res.json()
       if (!data || data.error) {
         throw new Error(data?.error || 'No data received')
@@ -252,7 +265,7 @@ function App() {
 
   const handleTrackOrder = async (orderNumber) => {
     try {
-      const res = await fetch(api(`/api/track-order/${orderNumber}`))
+      const res = await fetchWithTimeout(api(`/api/track-order/${orderNumber}`))
       const data = await res.json()
       setMessages(prev => [...prev, {
         id: Date.now(),
