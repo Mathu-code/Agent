@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import './DeliveryModal.css'
 
+const API_BASE = import.meta.env.VITE_API_BASE || '/api'
+
 function DeliveryModal({ isOpen, onClose, onConfirm, cart }) {
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState([])
@@ -22,7 +24,7 @@ function DeliveryModal({ isOpen, onClose, onConfirm, cart }) {
   const searchCities = async (q) => {
     if (!q) return setSuggestions([])
     try {
-      const res = await fetch(`/api/cities?q=${encodeURIComponent(q)}&limit=10`)
+      const res = await fetch(`${API_BASE}/cities?q=${encodeURIComponent(q)}&limit=10`)
       const data = await res.json()
       const cities = data.cities || data.matches || data || []
       setSuggestions(cities.map(c => typeof c === 'string' ? { name: c } : c))
@@ -49,7 +51,7 @@ function DeliveryModal({ isOpen, onClose, onConfirm, cart }) {
       // Convert YYYY-MM-DD to MM/DD/YYYY format
       const dateObj = new Date(date)
       const formattedDate = dateObj.toLocaleDateString('en-US')
-      const res = await fetch('/api/check-delivery', {
+      const res = await fetch(`${API_BASE}/check-delivery`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ city: cityValue, deliveryDate: formattedDate, productId })

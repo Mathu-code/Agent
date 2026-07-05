@@ -7,6 +7,7 @@ import CheckoutModal from './components/CheckoutModal'
 import OrderSuccessModal from './components/OrderSuccessModal'
 import { t, availableLocales } from './i18n/i18n'
 
+const API_BASE = import.meta.env.VITE_API_BASE || '/api'
 const SESSION_ID = 'session_default_' + Math.random().toString(36).slice(2)
 
 function App() {
@@ -87,7 +88,7 @@ function App() {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch(`${API_BASE}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, sessionId: SESSION_ID, mode, locale })
@@ -108,7 +109,7 @@ function App() {
         const ids = products.map(p => p.id).filter(Boolean)
         if (ids.length > 0) {
           try {
-            const imgRes = await fetch('/api/product-images', {
+             const imgRes = await fetch(`${API_BASE}/product-images`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ productIds: ids })
@@ -204,7 +205,7 @@ function App() {
       return
     }
     try {
-      const res = await fetch(`/api/product/${encodeURIComponent(product.id)}?currency=LKR`)
+      const res = await fetch(`${API_BASE}/product/${encodeURIComponent(product.id)}?currency=LKR`)
       const data = await res.json()
       if (!data || data.error) {
         throw new Error(data?.error || 'No data received')
@@ -250,7 +251,7 @@ function App() {
 
   const handleTrackOrder = async (orderNumber) => {
     try {
-      const res = await fetch(`/api/track-order/${orderNumber}`)
+      const res = await fetch(`${API_BASE}/track-order/${orderNumber}`)
       const data = await res.json()
       setMessages(prev => [...prev, {
         id: Date.now(),

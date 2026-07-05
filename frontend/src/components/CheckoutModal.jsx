@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import './CheckoutModal.css'
 
+const API_BASE = import.meta.env.VITE_API_BASE || '/api'
+
 function CheckoutModal({ isOpen, onClose, cart, deliveryInfo, onOrderCreated, locale }) {
   const [recipient, setRecipient] = useState({ name: '', email: '', phone: '', city: '' })
   const [sender, setSender] = useState({ name: '', email: '', phone: '' })
@@ -28,7 +30,7 @@ function CheckoutModal({ isOpen, onClose, cart, deliveryInfo, onOrderCreated, lo
         giftMessage: giftMessage || undefined,
         currency: 'LKR'
       }
-      const res = await fetch('/api/create-order', {
+      const res = await fetch(`${API_BASE}/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
