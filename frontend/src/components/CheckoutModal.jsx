@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import './CheckoutModal.css'
 
-const API_BASE = import.meta.env.VITE_API_BASE || '/api'
+const API_BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+const api = (path) => `${API_BASE}${path.startsWith('/') ? '' : '/'}${path}`
 
 function CheckoutModal({ isOpen, onClose, cart, deliveryInfo, onOrderCreated, locale }) {
   const [recipient, setRecipient] = useState({ name: '', email: '', phone: '', city: '' })
@@ -30,7 +31,7 @@ function CheckoutModal({ isOpen, onClose, cart, deliveryInfo, onOrderCreated, lo
         giftMessage: giftMessage || undefined,
         currency: 'LKR'
       }
-      const res = await fetch(`${API_BASE}/create-order`, {
+      const res = await fetch(api('/api/create-order'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
