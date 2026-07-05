@@ -347,19 +347,19 @@ function App() {
             
             {showProducts && currentProducts.length > 0 && (
               <div className="products-carousel">
-                <div className="carousel-header">
-                  <div className="carousel-title">
-                    {locale === 'si' ? 'ලබා ගත හැකි නිෂ්පාත:' : locale === 'ta' ? 'Katchi da products:' : 'Available Products:'}
-                  </div>
-                  <button className="carousel-close" onClick={() => setShowProducts(false)}>✕</button>
-                </div>
-<div className="products-grid">
+<div className="carousel-header">
+                   <div className="carousel-title">
+                     {locale === 'si' ? 'ලබා ගත හැකි නිෂ්පාත:' : locale === 'ta' ? 'Katchi da products:' : 'Available Products:'}
+                   </div>
+                   <button className="carousel-close" onClick={() => setShowProducts(false)}>✕</button>
+                 </div>
+                 <div className="products-grid">
                    {currentProducts.map(product => (
                      <ProductCard key={product.id || product.name} product={{...product, id: String(product.id || '')}} onAddToCart={handleAddToCart} onViewDetails={handleViewDetails} />
                    ))}
                  </div>
-              </div>
-            )}
+               </div>
+             )}
 
             {loading && (
               <div className="message agent">
