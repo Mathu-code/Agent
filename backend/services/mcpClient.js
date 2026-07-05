@@ -177,7 +177,7 @@ function parseProductDetails(raw) {
   const stockMatch = raw.match(/\*\*Stock\*\*:\s*(.+)/)
   const categoryMatch = raw.match(/\*\*Category\*\*:\s*(.+)/)
   const vendorMatch = raw.match(/\*\*Vendor\*\*:\s*(.+)/)
-  const imageMatch = raw.match(/\*\*Image\*\*:\s*(\S+)/)
+  const imageMatch = raw.match(/\*\*Image\*\*:\s*(.+?)(?:\n|$)/)
   const urlMatch = raw.match(/\[View on Kapruka\]\(([^)]+)\)/)
 
   let description = ''
@@ -199,7 +199,7 @@ function parseProductDetails(raw) {
     in_stock: stockMatch ? !stockMatch[1].toLowerCase().includes('out') : true,
     category: categoryMatch ? categoryMatch[1].trim() : '',
     seller: vendorMatch ? vendorMatch[1].trim() : '',
-    image_url: imageMatch ? imageMatch[1] : '',
+    image_url: imageMatch ? imageMatch[1].trim() : '',
     url: urlMatch ? urlMatch[1] : '',
     description: description || raw.substring(0, 200)
   }

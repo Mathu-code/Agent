@@ -110,7 +110,7 @@ function App() {
         const ids = products.map(p => p.id).filter(Boolean)
         if (ids.length > 0) {
           try {
-             const imgRes = await fetch(api('/api/product-images'), {
+             const imgRes = await fetchWithTimeout(api('/api/product-images'), {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ productIds: ids })
