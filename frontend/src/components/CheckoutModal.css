@@ -62,24 +62,7 @@
   border: 1px solid #fecaca;
 }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(100%); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 @media (max-width: 768px) {
-  .modal-overlay {
-    align-items: flex-end;
-    padding: 0;
-  }
-  .modal {
-    width: 100%;
-    border-radius: 24px 24px 0 0;
-    max-height: 90vh;
-    max-height: min(90vh, 700px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    animation: slideUp 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
-  }
   .checkout-modal {
     max-width: 100%;
   }
@@ -93,16 +76,6 @@
     padding: 14px;
   }
   .pay-link {
-    padding: 12px 16px;
-    font-size: 13px;
-  }
-  .modal-header {
-    padding: 16px 18px;
-  }
-  .modal-body {
-    padding: 16px;
-  }
-  .btn-primary, .btn-secondary {
     padding: 12px 16px;
     font-size: 13px;
   }

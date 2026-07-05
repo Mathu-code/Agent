@@ -177,11 +177,7 @@
 @media (max-width: 768px) {
   .product-name { font-size: 12px; }
   .current-price { font-size: 13px; }
-  .btn-view-details, .btn-add-cart {
-    font-size: 10px;
-    padding: 10px 10px;
-    min-height: 40px;
-  }
+  .btn-view-details, .btn-add-cart { font-size: 10px; padding: 7px 8px; }
   .product-details { padding: 10px; gap: 4px; }
 }
 
