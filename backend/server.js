@@ -2,19 +2,22 @@ import express from 'express'
 import cors from 'cors'
 import bodyParser from 'body-parser'
 import dotenv from 'dotenv'
-import { fileURLToPath } from 'url'
-import { dirname, join } from 'path'
 import * as mcpClient from './services/mcpClient.js'
 
 dotenv.config()
 
 const app = express()
 const PORT = process.env.PORT || 45678
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const isProduction = process.env.NODE_ENV === 'production'
 
-app.use(cors())
+app.use(cors({
+  origin: isProduction
+    ? ['https://Mathu-code.github.io', 'https://mathu-code.github.io']
+    : true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}))
 app.use(bodyParser.json())
-app.use(express.static(join(__dirname, '..', 'frontend', 'dist')))
 
 app.get('/health', (req, res) => {
   res.json({ status: 'Server is running', timestamp: new Date() })
@@ -282,15 +285,9 @@ function buildReply(message, mode, locale, products = [], searchData = null) {
   return "Tell me a bit more — what category, budget, or occasion? I promise to make it worth your while. 😉"
 }
 
-// SPA fallback — serve index.html for all non-API routes
-app.get('*', (req, res) => {
-  res.sendFile(join(__dirname, '..', 'frontend', 'dist', 'index.html'))
-})
-
 app.listen(PORT, () => {
-  console.log(`\n🚀 Kapruka Agent running on http://localhost:${PORT}`)
-  console.log(`📊  Health:   http://localhost:${PORT}/health`)
-  console.log(`🛍️  Frontend: http://localhost:${PORT}\n`)
+  console.log(`\n🚀 Kapruka API running on http://localhost:${PORT}`)
+  console.log(`📊  Health:   http://localhost:${PORT}/health\n`)
 })
 
 export default app

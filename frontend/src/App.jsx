@@ -7,7 +7,7 @@ import CheckoutModal from './components/CheckoutModal'
 import OrderSuccessModal from './components/OrderSuccessModal'
 import { t, availableLocales } from './i18n/i18n'
 
-const API_BASE = import.meta.env.VITE_API_BASE || '/api'
+const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '')
 const SESSION_ID = 'session_default_' + Math.random().toString(36).slice(2)
 
 function App() {
